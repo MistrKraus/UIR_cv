@@ -50,69 +50,67 @@ public class Heuristika {
         return cities;
     }
 
-    public static void aStar(ArrayList<City> cities, String target) {
+    public static boolean aStar(ArrayList<City> cities, String target) {
         City start = cities.get(0);
         ArrayList<City> closed = new ArrayList<>();     // Množina již uzavřených uzlů.
         ArrayList<City> open = new ArrayList<>();       // Množina otevřených uzlů.
         open.add(start);
         City x;
         City y;
-        boolean inClosed = false;
+        boolean currBetter;
         int currGscore;
 
-//        g_skore[start] := 0                                // Délka aktuální optimální cesty.
-//        h_skore[start] := heuristický_odhad_vzdálenosti(start, cíl)
-//        f_score[start] := h_skore[start]                   // Předpokládaná délka cesty mezi startem a cílem jdoucí přes y.
-
+        System.out.println("Processing: ");
         while (!open.isEmpty()) {
-            x = getOptimalCity(cities);
+            x = getOptimalCity(open);
 
-            if (x.equals(target))
-                return; // TODO
+            if (x.cityName.equals(target)) {
+                System.out.println("Optimalni cesta:");
+                reconstructPath(x);
+                return true;
+            }
 
             open.remove(x);
             closed.add(x);
+            System.out.println(x.cityName);
 
             for (Path path : x.paths) {
                 y = path.city2;
 
-                for (City c : closed) {
-                    if (y.equals(c.cityName)) {
-                        inClosed = true;
-                        break;
-                    }
-                }
-
-                if (inClosed)
+                if (closed.contains(y))
                     continue;
 
-                //currGscore = x.g_score +
+
+                currGscore = x.g_score + path.distance;
+
+                if (!open.contains(y)) {
+                    open.add(y);
+                    currBetter = true;
+                } else {
+                    currBetter = currGscore < y.g_score;
+                }
+
+                if (currBetter) {
+                    y.previous = x;
+                    y.g_score = currGscore;
+                    y.f_score = y.g_score + y.h_score;
+                }
             }
         }
-//        while openset is not empty
-//        x := otevřený uzel s nejmenší hodnotou f_score[]
-//        if x = cíl
-//        return rekonstruuj_cestu(přišel_z[cíl])
-//        vyjmi x z openset
-//        přidej x do closedset
-//        for each y in sousední_uzly(x)
-//        if y in closedset
-//        continue
-//                stávající_g_skore := g_skore[x] + d(x, y)
-//
-//        if y not in openset
-//        add y to openset
-//        stávající_je_lepší := true
-//        elseif stávající_g_skore < g_skore[y]
-//        stávající_je_lepší := true
-//            else
-//        stávající_je_lepší := false
-//        if stávající_je_lepší = true
-//        přišel_z[y] := x
-//        g_skore[y] := stávající_g_skore
-//        h_skore[y] := heuristický_odhad_vzdálenosti(y, cíl)
-//        f_score[y] := g_skore[y] + h_skore[y]
-//        return failure
+
+        return false;
+    }
+
+    public static void reconstructPath(City c) {
+        int distance = 0;
+        System.out.print(c.cityName + " <- ");
+        while (c.previous != null) {
+            distance += c.getPathTo(c.previous).distance;
+            c = c.previous;
+            System.out.print(c.cityName + " <- ");
+        }
+
+        System.out.println("Urazena vzdalenost: " + distance);
     }
 
     public static City getOptimalCity(ArrayList<City> cities) {
@@ -138,20 +136,27 @@ class City {
     public int f_score;
     public ArrayList<Path> paths = new ArrayList<>();
 
-    public City(String cityNum, int h_skore) {
+    public City(String cityNum, int h_score) {
+        h_score = 0;
         this.cityName = cityNum;
-        this.g_score = Integer.MAX_VALUE;
-        this.h_score = h_skore;
-        this.f_score = Integer.MAX_VALUE;
+        this.g_score = 0;
+        this.h_score = h_score;
+        this.f_score = h_score;
     }
 
     public void addPath(Path path) {
         paths.add(path);
     }
 
-    public void setPrevious(City city) {
-        this.previous = city;
+    public Path getPathTo(City target) {
+        for (Path p : paths) {
+            if (p.city2.cityName.equals(target.cityName))
+                return p;
+        }
+
+        return null;
     }
+
 }
 
 class Path {
